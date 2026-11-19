@@ -138,6 +138,32 @@ def fetch(url: str) -> bytes:
         raise first_exc
 
 
+def fetch_article_rubrics(link: str) -> list[str] | None:
+    """Return the article's rubric titles, or None when the page is unavailable.
+
+    Some outlets publish advertorial content without any ad marker in the RSS
+    feed, but the article page still exposes its rubric metadata. That lets us
+    drop a whole advertorial section (for example RG's lifestyle pieces)
+    without touching real news that shares a parent section.
+    """
+    req = urllib.request.Request(
+        link,
+        headers={
+            "User-Agent": "Mozilla/5.0 AI-Agent-Space-NewsBot/1.0 (+https://aiagentspace.cc)",
+            "Accept": "text/html,application/xhtml+xml",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
+            page = resp.read(1_500_000).decode("utf-8", "ignore")
+    except Exception:
+        return None
+    match = re.search(r'"rubrics"\s*:\s*\[(.*?)\]', page, re.S)
+    if not match:
+        return None
+    return [html.unescape(title) for title in re.findall(r'"title"\s*:\s*"([^"]+)"', match.group(1))]
+
+
 def parse_feed(xml_bytes: bytes, source: dict) -> list[NewsItem]:
     root = ET.fromstring(xml_bytes)
     feed_items: list[ET.Element] = []
@@ -168,7 +194,22 @@ def collect() -> tuple[list[NewsItem], list[str]]:
     for source in sources:
         try:
             feed = fetch(source["url"])
-            for item in parse_feed(feed, source):
+            parsed = parse_feed(feed, source)
+            excluded_rubrics = set(source.get("exclude_rubrics") or [])
+            if excluded_rubrics and parsed:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                    rubrics = list(pool.map(fetch_article_rubrics, [item.link for item in parsed]))
+                kept: list[NewsItem] = []
+                dropped = 0
+                for item, item_rubrics in zip(parsed, rubrics):
+                    if item_rubrics and excluded_rubrics.intersection(item_rubrics):
+                        dropped += 1
+                        continue
+                    kept.append(item)
+                if dropped:
+                    print(f"{source['name']}: filtered {dropped} advertorial item(s)", file=sys.stderr)
+                parsed = kept
+            for item in parsed:
                 if item.id in seen or item.link in seen:
                     continue
                 seen.add(item.id)

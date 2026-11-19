@@ -120,7 +120,10 @@
     "name": "Rossiyskaya Gazeta",
     "category": "Russia",
     "limit": 40,
-    "url": "https://rg.ru/xml/index.xml"
+    "url": "https://rg.ru/xml/index.xml",
+    "exclude_rubrics": [
+      "Образ жизни"
+    ]
   },
   {
     "name": "Kremlin",

@@ -8,6 +8,9 @@ Chinese, and publishes the generated static site to GitHub Pages.
 
 - Site: https://chr889.github.io/
 - Generator: `news_site/build_news.py` (Python standard library only)
+- Advertorial filter: a source can declare `exclude_rubrics`; the generator
+  reads the article's rubric metadata and drops matching items (used for
+  Rossiyskaya Gazeta's `Образ жизни` lifestyle/advertorial section).
 - Workflow: `.github/workflows/deploy.yml`
 
 Only headlines, short snippets, source names, timestamps and links back to the
