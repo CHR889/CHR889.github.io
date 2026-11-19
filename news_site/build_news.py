@@ -32,10 +32,12 @@ SOURCES_PATH = ROOT / "news_site" / "sources.json"
 PUBLIC_DIR = ROOT / "public"
 DATA_DIR = ROOT / "data"
 NEWS_DIR = PUBLIC_DIR / "news"
+RU_DIR = PUBLIC_DIR / "runews"
 ARCHIVE_DIR = PUBLIC_DIR / "archive"
 DATA_ARCHIVE_DIR = DATA_DIR / "archive"
 OUTPUT_HTML = PUBLIC_DIR / "index.html"
 OUTPUT_NEWS_HTML = NEWS_DIR / "index.html"
+OUTPUT_RU_HTML = RU_DIR / "index.html"
 OUTPUT_ARCHIVE_HTML = ARCHIVE_DIR / "index.html"
 OUTPUT_JSON = DATA_DIR / "news.json"
 TRANSLATION_CACHE_PATH = DATA_DIR / "translations.zh-CN.json"
@@ -61,6 +63,7 @@ class NewsItem:
     category: str
     published: str
     summary: str
+    origin: str = ""
     title_zh: str = ""
     summary_zh: str = ""
 
@@ -182,7 +185,8 @@ def parse_feed(xml_bytes: bytes, source: dict) -> list[NewsItem]:
         summary = clean_text(child_text(item, ["description", "summary", "content", "encoded", "content:encoded"]), 300)
         published_dt = parse_datetime(child_text(item, ["pubDate", "published", "updated", "dc:date"]))
         digest = hashlib.sha1(f"{source['name']}|{link}|{title}".encode("utf-8")).hexdigest()[:16]
-        parsed.append(NewsItem(digest, title, link, source["name"], source.get("category", "News"), published_dt.isoformat(), summary))
+        origin = child_attr(item, "source", "url") or link
+        parsed.append(NewsItem(digest, title, link, source["name"], source.get("category", "News"), published_dt.isoformat(), summary, origin=origin))
     return parsed
 
 
@@ -473,11 +477,28 @@ def mark_svg() -> str:
     return '<svg class="mark" viewBox="0 0 32 32" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect class="mark-bg" x="3" y="3" width="26" height="26" rx="7.2"/><rect class="mark-border" x="3.35" y="3.35" width="25.3" height="25.3" rx="6.85"/><rect class="mark-shine" x="5" y="5" width="22" height="22" rx="6"/><path class="mark-orbit" d="M8.2 17.8c3.7 5.1 11.8 5.1 15.5 0M8.2 14.2c3.7-5.1 11.8-5.1 15.5 0"/><circle class="mark-lens" cx="15.3" cy="15.3" r="1.9"/><path class="mark-plus" d="M14.5 15.3H16.1M15.3 14.5V16.1"/><path class="mark-handle" d="M16.75 16.75L18.45 18.45"/><path class="mark-glint" d="M7.2 7.2C9.7 5.8 12.8 5.2 16 5.2"/></svg>'
 
 
+def host_of(url: str) -> str:
+    try:
+        return (urllib.parse.urlparse(url).hostname or "").lower()
+    except Exception:
+        return ""
+
+
+def is_ru_item(item: NewsItem) -> bool:
+    """True when the story was published on a .ru site.
+
+    Google News items link to news.google.com, so the publisher host from the
+    feed's <source url="..."> element is used when available.
+    """
+    host = host_of(item.origin) or host_of(item.link)
+    return host == "ru" or host.endswith(".ru")
+
+
 def nav_html() -> str:
-    return f'<header><div class="shell nav"><a class="brand" href="/" aria-label="AI Agent Space News home">{mark_svg()}</a><div class="nav-meta"><span>Updated every 2 hours</span><a href="/news/">News</a><a href="/archive/">Archive</a><a href="/news.json">Data feed</a></div></div></header>'
+    return f'<header><div class="shell nav"><a class="brand" href="/" aria-label="AI Agent Space News home">{mark_svg()}</a><div class="nav-meta"><span>Updated every 2 hours</span><a href="/news/">News</a><a href="/runews/">RU News</a><a href="/archive/">Archive</a><a href="/news.json">Data feed</a></div></div></header>'
 
 
-def render(items: list[NewsItem], errors: list[str], page_label: str | None = None) -> str:
+def render(items: list[NewsItem], errors: list[str], page_label: str | None = None, hero_heading: str = "全球新闻观察", page_title: str = "AI Agent Space News") -> str:
     now = datetime.now(timezone.utc)
     top = items[0] if items else None
     categories = sorted({item.category for item in items})
@@ -505,7 +526,7 @@ def render(items: list[NewsItem], errors: list[str], page_label: str | None = No
     hero_link = html.escape(top.link if top else "#")
     hero_source = html.escape(top.source if top else "System")
     label = page_label or f"LIVE DIGEST · {now.strftime('%Y-%m-%d %H:%M UTC')}"
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>AI Agent Space News</title><meta name="description" content="每 2 小时自动追踪指定国际新闻源，展示中文标题、中文摘要和原文链接。" /><link rel="canonical" href="/news/" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><style>{news_css()}</style></head><body>{nav_html()}<main><section class="hero"><div class="shell hero-inner"><div><div class="eyebrow">{label}</div><h1>全球新闻观察</h1></div><article class="hero-card"><div class="source">Top story · {hero_source}</div><h2><a href="{hero_link}" target="_blank" rel="noopener noreferrer">{hero_title}</a></h2><p>{hero_summary}</p><a class="more" href="{hero_link}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a></article></div></section><section class="toolbar"><div class="shell toolbar-row"><div class="tabs">{category_tabs}</div><div class="stat"><span id="visible-count">{len(items)}</span> / {len(items)} 条新闻 · 中文摘要 · 链接到原文</div></div><div class="shell source-panel"><h2>按来源筛选</h2><div class="source-filters" role="list" aria-label="Filter by source">{source_filters}</div></div></section><section class="shell grid">{''.join(cards)}</section>{error_block}</main><footer><div class="shell"><span>© {now.year} AI Agent Space News</span><span>中文标题和摘要由自动翻译生成；完整报道与版权归原媒体所有。</span></div></footer><script>(() => {{ const sourceButtons = [...document.querySelectorAll('.source-filter')]; const categoryButtons = [...document.querySelectorAll('.category-filter')]; const cards = [...document.querySelectorAll('.news-card')]; const counter = document.querySelector('#visible-count'); const state = {{ source: 'all', category: 'all' }}; const apply = () => {{ let visible = 0; for (const card of cards) {{ const sourceOk = state.source === 'all' || card.dataset.source === state.source; const categoryOk = state.category === 'all' || card.dataset.category === state.category; const show = sourceOk && categoryOk; card.classList.toggle('is-hidden', !show); if (show) visible += 1; }} if (counter) counter.textContent = visible; for (const button of sourceButtons) button.classList.toggle('active', button.dataset.source === state.source); for (const button of categoryButtons) button.classList.toggle('active', button.dataset.category === state.category); }}; for (const button of sourceButtons) button.addEventListener('click', () => {{ state.source = button.dataset.source; apply(); }}); for (const button of categoryButtons) button.addEventListener('click', () => {{ state.category = button.dataset.category; apply(); }}); }})();</script></body></html>'''
+    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{page_title}</title><meta name="description" content="每 2 小时自动追踪指定国际新闻源，展示中文标题、中文摘要和原文链接。" /><link rel="canonical" href="/news/" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><style>{news_css()}</style></head><body>{nav_html()}<main><section class="hero"><div class="shell hero-inner"><div><div class="eyebrow">{label}</div><h1>{hero_heading}</h1></div><article class="hero-card"><div class="source">Top story · {hero_source}</div><h2><a href="{hero_link}" target="_blank" rel="noopener noreferrer">{hero_title}</a></h2><p>{hero_summary}</p><a class="more" href="{hero_link}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a></article></div></section><section class="toolbar"><div class="shell toolbar-row"><div class="tabs">{category_tabs}</div><div class="stat"><span id="visible-count">{len(items)}</span> / {len(items)} 条新闻 · 中文摘要 · 链接到原文</div></div><div class="shell source-panel"><h2>按来源筛选</h2><div class="source-filters" role="list" aria-label="Filter by source">{source_filters}</div></div></section><section class="shell grid">{''.join(cards)}</section>{error_block}</main><footer><div class="shell"><span>© {now.year} AI Agent Space News</span><span>中文标题和摘要由自动翻译生成；完整报道与版权归原媒体所有。</span></div></footer><script>(() => {{ const sourceButtons = [...document.querySelectorAll('.source-filter')]; const categoryButtons = [...document.querySelectorAll('.category-filter')]; const cards = [...document.querySelectorAll('.news-card')]; const counter = document.querySelector('#visible-count'); const state = {{ source: 'all', category: 'all' }}; const apply = () => {{ let visible = 0; for (const card of cards) {{ const sourceOk = state.source === 'all' || card.dataset.source === state.source; const categoryOk = state.category === 'all' || card.dataset.category === state.category; const show = sourceOk && categoryOk; card.classList.toggle('is-hidden', !show); if (show) visible += 1; }} if (counter) counter.textContent = visible; for (const button of sourceButtons) button.classList.toggle('active', button.dataset.source === state.source); for (const button of categoryButtons) button.classList.toggle('active', button.dataset.category === state.category); }}; for (const button of sourceButtons) button.addEventListener('click', () => {{ state.source = button.dataset.source; apply(); }}); for (const button of categoryButtons) button.addEventListener('click', () => {{ state.category = button.dataset.category; apply(); }}); }})();</script></body></html>'''
 
 
 
@@ -618,9 +639,16 @@ def main() -> int:
     html_output = render(items, errors)
     OUTPUT_HTML.write_text(render_home(items, errors), encoding="utf-8")
     OUTPUT_NEWS_HTML.write_text(html_output, encoding="utf-8")
+    ru_items = [item for item in items if is_ru_item(item)]
+    RU_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_RU_HTML.write_text(
+        render(ru_items, errors, page_label=f"RU NEWS · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", hero_heading="俄语新闻", page_title="RU News · AI Agent Space"),
+        encoding="utf-8",
+    )
     write_archive_pages()
     FAVICON_PATH.write_text(favicon_svg(), encoding="utf-8")
     print(f"Generated {OUTPUT_NEWS_HTML} with {len(items)} stories")
+    print(f"Generated {OUTPUT_RU_HTML} with {len(ru_items)} .ru stories")
     print(f"Generated {OUTPUT_ARCHIVE_HTML} with {len(load_archive_payloads())} archive days")
     if errors:
         print("Feed errors:", file=sys.stderr)
