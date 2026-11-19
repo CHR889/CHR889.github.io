@@ -33,11 +33,13 @@ PUBLIC_DIR = ROOT / "public"
 DATA_DIR = ROOT / "data"
 NEWS_DIR = PUBLIC_DIR / "news"
 RU_DIR = PUBLIC_DIR / "runews"
+SEARCH_DIR = PUBLIC_DIR / "search"
 ARCHIVE_DIR = PUBLIC_DIR / "archive"
 DATA_ARCHIVE_DIR = DATA_DIR / "archive"
 OUTPUT_HTML = PUBLIC_DIR / "index.html"
 OUTPUT_NEWS_HTML = NEWS_DIR / "index.html"
 OUTPUT_RU_HTML = RU_DIR / "index.html"
+OUTPUT_SEARCH_HTML = SEARCH_DIR / "index.html"
 OUTPUT_ARCHIVE_HTML = ARCHIVE_DIR / "index.html"
 OUTPUT_JSON = DATA_DIR / "news.json"
 TRANSLATION_CACHE_PATH = DATA_DIR / "translations.zh-CN.json"
@@ -495,7 +497,7 @@ def is_ru_item(item: NewsItem) -> bool:
 
 
 def nav_html() -> str:
-    return f'<header><div class="shell nav"><a class="brand" href="/" aria-label="AI Agent Space News home">{mark_svg()}</a><div class="nav-meta"><span>Updated every 2 hours</span><a href="/news/">News</a><a href="/runews/">RU News</a><a href="/archive/">Archive</a><a href="/news.json">Data feed</a></div></div></header>'
+    return f'<header><div class="shell nav"><a class="brand" href="/" aria-label="AI Agent Space News home">{mark_svg()}</a><div class="nav-meta"><span>Updated every 2 hours</span><a href="/news/">News</a><a href="/runews/">RU News</a><a href="/search/">Search</a><a href="/archive/">Archive</a><a href="/news.json">Data feed</a></div></div></header>'
 
 
 def render(items: list[NewsItem], errors: list[str], page_label: str | None = None, hero_heading: str = "全球新闻观察", page_title: str = "AI Agent Space News") -> str:
@@ -528,6 +530,60 @@ def render(items: list[NewsItem], errors: list[str], page_label: str | None = No
     label = page_label or f"LIVE DIGEST · {now.strftime('%Y-%m-%d %H:%M UTC')}"
     return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{page_title}</title><meta name="description" content="每 2 小时自动追踪指定国际新闻源，展示中文标题、中文摘要和原文链接。" /><link rel="canonical" href="/news/" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><style>{news_css()}</style></head><body>{nav_html()}<main><section class="hero"><div class="shell hero-inner"><div><div class="eyebrow">{label}</div><h1>{hero_heading}</h1></div><article class="hero-card"><div class="source">Top story · {hero_source}</div><h2><a href="{hero_link}" target="_blank" rel="noopener noreferrer">{hero_title}</a></h2><p>{hero_summary}</p><a class="more" href="{hero_link}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a></article></div></section><section class="toolbar"><div class="shell toolbar-row"><div class="tabs">{category_tabs}</div><div class="stat"><span id="visible-count">{len(items)}</span> / {len(items)} 条新闻 · 中文摘要 · 链接到原文</div></div><div class="shell source-panel"><h2>按来源筛选</h2><div class="source-filters" role="list" aria-label="Filter by source">{source_filters}</div></div></section><section class="shell grid">{''.join(cards)}</section>{error_block}</main><footer><div class="shell"><span>© {now.year} AI Agent Space News</span><span>中文标题和摘要由自动翻译生成；完整报道与版权归原媒体所有。</span></div></footer><script>(() => {{ const sourceButtons = [...document.querySelectorAll('.source-filter')]; const categoryButtons = [...document.querySelectorAll('.category-filter')]; const cards = [...document.querySelectorAll('.news-card')]; const counter = document.querySelector('#visible-count'); const state = {{ source: 'all', category: 'all' }}; const apply = () => {{ let visible = 0; for (const card of cards) {{ const sourceOk = state.source === 'all' || card.dataset.source === state.source; const categoryOk = state.category === 'all' || card.dataset.category === state.category; const show = sourceOk && categoryOk; card.classList.toggle('is-hidden', !show); if (show) visible += 1; }} if (counter) counter.textContent = visible; for (const button of sourceButtons) button.classList.toggle('active', button.dataset.source === state.source); for (const button of categoryButtons) button.classList.toggle('active', button.dataset.category === state.category); }}; for (const button of sourceButtons) button.addEventListener('click', () => {{ state.source = button.dataset.source; apply(); }}); for (const button of categoryButtons) button.addEventListener('click', () => {{ state.category = button.dataset.category; apply(); }}); }})();</script></body></html>'''
 
+
+
+def render_search() -> str:
+    now = datetime.now(timezone.utc)
+    return rf'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>搜索新闻 · AI Agent Space</title><meta name="description" content="按关键词搜索已抓取的中文新闻标题与摘要。" /><link rel="canonical" href="/search/" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><style>{news_css()}
+    .search-wrap {{ padding: 56px 0 24px; border-bottom: 1px solid var(--hairline); }}
+    .search-wrap h1 {{ margin: 16px 0 22px; font-size: clamp(34px, 6vw, 56px); letter-spacing: -.05em; }}
+    .search-bar {{ display: flex; gap: 10px; max-width: 760px; }}
+    .search-bar input {{ flex: 1; min-width: 0; padding: 14px 16px; border: 1px solid var(--hairline); border-radius: 12px; font: inherit; font-size: 16px; background: #fff; color: var(--ink); }}
+    .search-bar button {{ border: 1px solid var(--ink); background: var(--ink); color: #fff; border-radius: 12px; padding: 0 18px; font: inherit; cursor: pointer; }}
+    .search-meta {{ margin: 18px 0 0; color: var(--muted); font-size: 14px; }}
+    </style></head><body>{nav_html()}<main><section class="search-wrap"><div class="shell"><div class="eyebrow">SEARCH · {now.strftime('%Y-%m-%d')}</div><h1>搜索新闻</h1><form class="search-bar" id="search-form" role="search"><input id="q" type="search" placeholder="输入关键词，例如：普京、AI、乌克兰" autocomplete="off" aria-label="搜索关键词" /><button type="submit">搜索</button></form><p class="search-meta" id="count">正在加载新闻数据…</p></div></section><section class="shell"><div class="grid" id="results"></div></section></main><footer><div class="shell"><span>© {now.year} AI Agent Space News</span><span>搜索范围为当前已抓取的新闻；标题和摘要由自动翻译生成。</span></div></footer><script>
+    const qInput = document.getElementById('q');
+    const results = document.getElementById('results');
+    const count = document.getElementById('count');
+    let items = [];
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
+    const slug = (v) => String(v || 'news').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'news';
+    const fmtTime = (iso) => {{
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+    }};
+    const card = (it) => `
+      <article class="news-card">
+        <div class="card-meta"><span class="pill pill-${{slug(it.category)}}">${{esc(it.category)}}</span><span>${{esc(it.source)}}</span><span>${{esc(fmtTime(it.published))}}</span></div>
+        <h3><a href="${{esc(it.link)}}" target="_blank" rel="noopener noreferrer">${{esc(it.title_zh || it.title)}}</a></h3>
+        <p>${{esc(it.summary_zh || it.summary || '打开原文查看详情。')}}</p>
+        <details class="original"><summary>原文</summary><h4>${{esc(it.title)}}</h4><p>${{esc(it.summary || '')}}</p></details>
+      </article>`;
+    const apply = () => {{
+      const raw = qInput.value.trim();
+      const terms = raw.toLowerCase().split(/\s+/).filter(Boolean);
+      let hits = items;
+      if (terms.length) {{
+        hits = items.filter((it) => {{
+          const hay = [it.title, it.title_zh, it.summary, it.summary_zh, it.source, it.category].join(' ').toLowerCase();
+          return terms.every((t) => hay.includes(t));
+        }});
+      }}
+      const shown = hits.slice(0, 200);
+      count.textContent = terms.length
+        ? `${{hits.length}} 条匹配“${{raw}}”` + (hits.length > shown.length ? `，先显示前 ${{shown.length}} 条` : '')
+        : `共 ${{items.length}} 条已抓取新闻，输入关键词开始搜索`;
+      results.innerHTML = shown.map(card).join('') || '<p class="search-meta">没有匹配的新闻，换个关键词试试。</p>';
+    }};
+    fetch('/news.json', {{ cache: 'no-store' }})
+      .then((r) => r.json())
+      .then((d) => {{ items = d.items || []; const p = new URLSearchParams(location.search).get('q'); if (p) qInput.value = p; apply(); }})
+      .catch(() => {{ count.textContent = '新闻数据加载失败，请稍后重试。'; }});
+    document.getElementById('search-form').addEventListener('submit', (e) => {{ e.preventDefault(); apply(); const url = new URL(location.href); if (qInput.value.trim()) url.searchParams.set('q', qInput.value.trim()); else url.searchParams.delete('q'); history.replaceState(null, '', url); }});
+    qInput.addEventListener('input', () => {{ clearTimeout(window.__t); window.__t = setTimeout(apply, 220); }});
+    </script></body></html>'''
 
 
 def render_home(items: list[NewsItem], errors: list[str]) -> str:
@@ -641,6 +697,7 @@ def main() -> int:
     OUTPUT_NEWS_HTML.write_text(html_output, encoding="utf-8")
     ru_items = [item for item in items if is_ru_item(item)]
     RU_DIR.mkdir(parents=True, exist_ok=True)
+    SEARCH_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_RU_HTML.write_text(
         render(ru_items, errors, page_label=f"RU NEWS · {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", hero_heading="俄语新闻", page_title="RU News · AI Agent Space"),
         encoding="utf-8",
@@ -649,6 +706,8 @@ def main() -> int:
     FAVICON_PATH.write_text(favicon_svg(), encoding="utf-8")
     print(f"Generated {OUTPUT_NEWS_HTML} with {len(items)} stories")
     print(f"Generated {OUTPUT_RU_HTML} with {len(ru_items)} .ru stories")
+    OUTPUT_SEARCH_HTML.write_text(render_search(), encoding="utf-8")
+    print(f"Generated {OUTPUT_SEARCH_HTML}")
     print(f"Generated {OUTPUT_ARCHIVE_HTML} with {len(load_archive_payloads())} archive days")
     if errors:
         print("Feed errors:", file=sys.stderr)

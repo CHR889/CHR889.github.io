@@ -8,6 +8,7 @@ Chinese, and publishes the generated static site to GitHub Pages.
 
 - Site: https://chr889.github.io/
 - RU-only page: https://chr889.github.io/runews/ (stories published on `.ru` domains)
+- Search: https://chr889.github.io/search/ (client-side keyword search over the latest digest)
 - Generator: `news_site/build_news.py` (Python standard library only)
 - Advertorial filter: a source can declare `exclude_rubrics`; the generator
   reads the article's rubric metadata and drops matching items (used for
