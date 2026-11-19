@@ -1,0 +1,137 @@
+[
+  {
+    "name": "Washington Post via Google News",
+    "category": "Top",
+    "url": "https://news.google.com/rss/search?q=site:washingtonpost.com&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "name": "Washington Post World via Google News",
+    "category": "World",
+    "url": "https://news.google.com/rss/search?q=site:washingtonpost.com/world&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "name": "New York Times Top Stories",
+    "category": "Top",
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+  },
+  {
+    "name": "New York Times World",
+    "category": "World",
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+  },
+  {
+    "name": "New York Times Business",
+    "category": "Business",
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml"
+  },
+  {
+    "name": "The Economist Latest",
+    "category": "Analysis",
+    "url": "https://www.economist.com/latest/rss.xml"
+  },
+  {
+    "name": "The Economist International",
+    "category": "World",
+    "url": "https://www.economist.com/international/rss.xml"
+  },
+  {
+    "name": "The Economist Business",
+    "category": "Business",
+    "url": "https://www.economist.com/business/rss.xml"
+  },
+  {
+    "name": "Bloomberg Markets",
+    "category": "Markets",
+    "url": "https://feeds.bloomberg.com/markets/news.rss"
+  },
+  {
+    "name": "Bloomberg Economics",
+    "category": "Business",
+    "url": "https://feeds.bloomberg.com/economics/news.rss"
+  },
+  {
+    "name": "Bloomberg Politics",
+    "category": "Politics",
+    "url": "https://feeds.bloomberg.com/politics/news.rss"
+  },
+  {
+    "name": "Bloomberg Technology",
+    "category": "Technology",
+    "url": "https://feeds.bloomberg.com/technology/news.rss"
+  },
+  {
+    "name": "Wall Street Journal World",
+    "category": "World",
+    "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
+  },
+  {
+    "name": "Wall Street Journal Business",
+    "category": "Business",
+    "url": "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml"
+  },
+  {
+    "name": "Wall Street Journal Markets",
+    "category": "Markets",
+    "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
+  },
+  {
+    "name": "Reuters via Google News",
+    "category": "Top",
+    "url": "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "name": "Reuters Business via Google News",
+    "category": "Business",
+    "url": "https://news.google.com/rss/search?q=site:reuters.com/business&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "name": "South China Morning Post China",
+    "category": "China",
+    "url": "https://www.scmp.com/rss/4/feed"
+  },
+  {
+    "name": "South China Morning Post Asia",
+    "category": "Asia",
+    "url": "https://www.scmp.com/rss/3/feed"
+  },
+  {
+    "name": "South China Morning Post World",
+    "category": "World",
+    "url": "https://www.scmp.com/rss/5/feed"
+  },
+  {
+    "name": "South China Morning Post Business",
+    "category": "Business",
+    "url": "https://www.scmp.com/rss/92/feed"
+  },
+  {
+    "name": "TASS",
+    "category": "Russia",
+    "limit": 40,
+    "url": "https://tass.ru/rss/v2.xml"
+  },
+  {
+    "name": "RIA Novosti",
+    "category": "Russia",
+    "limit": 40,
+    "url": "https://ria.ru/export/rss2/index.xml"
+  },
+  {
+    "name": "Rossiyskaya Gazeta",
+    "category": "Russia",
+    "limit": 40,
+    "url": "https://rg.ru/xml/index.xml"
+  },
+  {
+    "name": "Kremlin",
+    "category": "Russia",
+    "limit": 40,
+    "url": "https://news.google.com/rss/search?q=site:kremlin.ru&hl=ru&gl=RU&ceid=RU:ru"
+  },
+  {
+    "name": "Russian MFA",
+    "category": "Russia",
+    "limit": 40,
+    "url": "https://news.google.com/rss/search?q=site:mid.ru&hl=ru&gl=RU&ceid=RU:ru"
+  }
+]

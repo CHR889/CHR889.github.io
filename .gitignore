@@ -1,0 +1,9 @@
+# Generated site and runtime data (regenerated every 2 hours)
+data/
+public/
+
+# Local/editor noise
+*.bak-*
+__pycache__/
+*.pyc
+.DS_Store
